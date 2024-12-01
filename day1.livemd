@@ -1,0 +1,57 @@
+# Day 1
+
+```elixir
+Mix.install([:kino])
+```
+
+## Read Input
+
+```elixir
+file_input = Kino.Input.file("Select Input File")
+```
+
+```elixir
+file_value = Kino.Input.read(file_input)
+file_path = Kino.Input.file_path(file_value.file_ref)
+contents = File.read!(file_path)
+```
+
+## Part 1
+
+```elixir
+sum = contents
+  |> String.split("\n")
+  |> Enum.reject(fn line -> String.length(String.trim(line)) == 0 end)
+  |> Enum.map(fn line -> 
+    ~r/(\d+)\s*(\d+)/
+    |> Regex.run(line)
+    |> Enum.slice(1..2)
+    |> Enum.map(&String.to_integer/1)
+    |> then(fn [first, second] -> {first, second} end)
+  end)
+  |> Enum.unzip()
+  |> then(fn {a, b} -> Enum.zip(Enum.sort(a), Enum.sort(b)) end)
+  |> Enum.reduce(0, fn ({a, b}, sum) -> sum + abs(a - b) end)
+```
+
+## Part 2
+
+```elixir
+sum = contents
+  |> String.split("\n")
+  |> Enum.reject(fn line -> String.length(String.trim(line)) == 0 end)
+  |> Enum.map(fn line -> 
+    ~r/(\d+)\s*(\d+)/
+    |> Regex.run(line)
+    |> Enum.slice(1..2)
+    |> Enum.map(&String.to_integer/1)
+    |> then(fn [first, second] -> {first, second} end)
+  end)
+  |> Enum.unzip()
+  |> then(fn {a, b} -> 
+    frequencies = Enum.frequencies(b) 
+    Enum.reduce(a, 0, fn(i, sum) ->
+      sum + i * Map.get(frequencies, i, 0)
+    end)
+  end)
+```
