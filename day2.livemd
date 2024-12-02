@@ -17,17 +17,6 @@ contents = File.read!(file_path)
 ```
 
 ```elixir
-contents = """
-7 6 4 2 1
-1 2 7 8 9
-9 7 6 2 1
-1 3 2 4 5
-8 6 4 4 1
-1 3 6 7 9
-"""
-```
-
-```elixir
 reports =
   contents
   |> String.split("\n")
@@ -41,67 +30,71 @@ reports =
 ```
 
 ```elixir
-report_evaluator = fn reports, max_removals ->
-  reports
-  |> Enum.filter(fn numbers ->
-    numbers
-    |> Enum.reduce_while(%{result: true, last: nil, dir: nil, removed: 0}, fn
-      n, %{last: nil} = result ->
-        {:cont, %{result | last: n}}
+report_evaluator = fn numbers ->
+  numbers
+  |> Enum.reduce_while(%{result: true, last: nil, dir: nil}, fn
+    n, %{last: nil} = result ->
+      {:cont, %{result | last: n}}
 
-      n, %{last: m, removed: r} = result when r < max_removals and m > n and m - n > 3 ->
-        {:cont, %{result | removed: r + 1}}
+    n, %{last: m} when m > n and m - n > 3 ->
+      {:halt, %{result: false}}
 
-      n, %{last: m} when m > n and m - n > 3 ->
-        {:halt, %{result: false}}
+    n, %{last: m} when n > m and n - m > 3 ->
+      {:halt, %{result: false}}
 
-      n, %{last: m, removed: r} = result when r < max_removals and n > m and n - m > 3 ->
-        {:cont, %{result | removed: r + 1}}
+    n, %{last: n} ->
+      {:halt, %{result: false}}
 
-      n, %{last: m} when n > m and n - m > 3 ->
-        {:halt, %{result: false}}
+    n, %{last: m, dir: nil} = result when n > m ->
+      {:cont, %{result | dir: :asc, last: n}}
 
-      n, %{last: n, removed: r} = result when r < max_removals ->
-        {:cont, %{result | removed: r + 1}}
+    n, %{last: m, dir: nil} = result when n < m ->
+      {:cont, %{result | dir: :desc, last: n}}
 
-      n, %{last: n} ->
-        {:halt, %{result: false}}
+    n, %{last: m, dir: :asc} when n < m ->
+      {:halt, %{result: false}}
 
-      n, %{last: m, dir: nil} = result when n > m ->
-        {:cont, %{result | dir: :asc, last: n}}
+    n, %{last: m, dir: :desc} when n > m ->
+      {:halt, %{result: false}}
 
-      n, %{last: m, dir: nil} = result when n < m ->
-        {:cont, %{result | dir: :desc, last: n}}
-
-      n, %{last: m, dir: :asc, removed: r} = result when r < max_removals and n < m ->
-        {:cont, %{result | removed: r + 1}}
-
-      n, %{last: m, dir: :asc} when n < m ->
-        {:halt, %{result: false}}
-
-      n, %{last: m, dir: :desc, removed: r} = result when r < max_removals and n > m ->
-        {:cont, %{result | removed: r + 1}}
-
-      n, %{last: m, dir: :desc} when n > m ->
-        {:halt, %{result: false}}
-
-      n, result ->
-        {:cont, %{result | last: n}}
-    end)
-    |> Map.get(:result)
+    n, result ->
+      {:cont, %{result | last: n}}
   end)
-  |> length()
+  |> Map.get(:result)
+end
+```
+
+```elixir
+defmodule ProblemDampener do
+  def run(numbers, evaluator) when is_function(evaluator, 1) do
+    case evaluator.(numbers) do
+      true  -> true
+      false -> run(numbers, evaluator, 0, length(numbers))
+    end
+  end
+  def run(_numbers, _evaluator, length, length),
+      do: false
+  def run(numbers, evaluator, index, length) do
+    case evaluator.(List.delete_at(numbers, index)) do
+      true -> true
+      false -> run(numbers, evaluator, index + 1, length)
+    end
+  end
 end
 ```
 
 ## Part 1
 
 ```elixir
-report_evaluator.(reports, 0)
+reports
+|> Enum.filter(fn numbers -> report_evaluator.(numbers) end)
+|> length()
 ```
 
 ## Part 2
 
 ```elixir
-report_evaluator.(reports, 1)
+reports
+|> Enum.filter(fn numbers -> ProblemDampener.run(numbers, report_evaluator) end)
+|> length()
 ```
