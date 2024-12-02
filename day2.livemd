@@ -30,56 +30,45 @@ reports =
 ```
 
 ```elixir
-report_evaluator = fn numbers ->
-  numbers
-  |> Enum.reduce_while(%{result: true, last: nil, dir: nil}, fn
-    n, %{last: nil} = result ->
-      {:cont, %{result | last: n}}
+defmodule ReportEvaluator do
+  defstruct last: nil, direction: nil, max_difference: 3
 
-    n, %{last: m} when m > n and m - n > 3 ->
-      {:halt, %{result: false}}
-
-    n, %{last: m} when n > m and n - m > 3 ->
-      {:halt, %{result: false}}
-
-    n, %{last: n} ->
-      {:halt, %{result: false}}
-
-    n, %{last: m, dir: nil} = result when n > m ->
-      {:cont, %{result | dir: :asc, last: n}}
-
-    n, %{last: m, dir: nil} = result when n < m ->
-      {:cont, %{result | dir: :desc, last: n}}
-
-    n, %{last: m, dir: :asc} when n < m ->
-      {:halt, %{result: false}}
-
-    n, %{last: m, dir: :desc} when n > m ->
-      {:halt, %{result: false}}
-
-    n, result ->
-      {:cont, %{result | last: n}}
-  end)
-  |> Map.get(:result)
+  def run(numbers) when is_list(numbers),
+    do: run(%ReportEvaluator{}, numbers)
+  
+  def run(_state, []),
+    do: true
+  def run(%ReportEvaluator{last: nil} = state, [n | t]),
+    do: run(%{state | last: n}, t)
+  def run(%ReportEvaluator{last: m, max_difference: max}, [n | _]) when n > m and n - m > max,
+    do: false
+  def run(%ReportEvaluator{last: m, max_difference: max}, [n | _]) when m > n and m - n > max,
+    do: false
+  def run(%ReportEvaluator{last: m, direction: nil} = state, [n | t]) when n > m,
+    do: run(%{state | direction: :asc, last: n}, t)
+  def run(%ReportEvaluator{last: m, direction: nil} = state, [n | t]) when n < m,
+    do: run(%{state | direction: :desc, last: n}, t)
+  def run(%ReportEvaluator{last: n}, [n | _]),
+    do: false
+  def run(%ReportEvaluator{last: m, direction: :asc}, [n | _]) when n < m,
+    do: false
+  def run(%ReportEvaluator{last: m, direction: :desc}, [n | _]) when n > m,
+    do: false
+  def run(%ReportEvaluator{} = state, [n | t]),
+    do: run(%{state | last: n}, t)
 end
 ```
 
 ```elixir
 defmodule ProblemDampener do
-  def run(numbers, evaluator) when is_function(evaluator, 1) do
-    case evaluator.(numbers) do
-      true  -> true
-      false -> run(numbers, evaluator, 0, length(numbers))
-    end
-  end
-  def run(_numbers, _evaluator, length, length),
-      do: false
-  def run(numbers, evaluator, index, length) do
-    case evaluator.(List.delete_at(numbers, index)) do
-      true -> true
-      false -> run(numbers, evaluator, index + 1, length)
-    end
-  end
+  def run(numbers, evaluator) when is_function(evaluator, 1),
+    do: run(numbers, evaluator, evaluator.(numbers), 0, length(numbers))
+  def run(_numbers, _evaluator, true, _index, _length),
+    do: true
+  def run(_numbers, _evaluator, result, length, length),
+    do: result
+  def run(numbers, evaluator, false, index, length),
+    do: run(numbers, evaluator, evaluator.(List.delete_at(numbers, index)), index + 1, length)
 end
 ```
 
@@ -87,14 +76,16 @@ end
 
 ```elixir
 reports
-|> Enum.filter(fn numbers -> report_evaluator.(numbers) end)
-|> length()
+  |> Enum.filter(&ReportEvaluator.run/1)
+  |> length()
 ```
 
 ## Part 2
 
 ```elixir
 reports
-|> Enum.filter(fn numbers -> ProblemDampener.run(numbers, report_evaluator) end)
-|> length()
+  |> Enum.filter(fn numbers -> 
+    ProblemDampener.run(numbers, &ReportEvaluator.run/1) 
+  end)
+  |> length()
 ```
