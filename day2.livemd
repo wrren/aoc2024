@@ -1,0 +1,107 @@
+# Day 2
+
+```elixir
+Mix.install([:kino])
+```
+
+## Read File
+
+```elixir
+file_value = Kino.Input.file("Please Select Input File")
+```
+
+```elixir
+file_input = Kino.Input.read(file_value)
+file_path = Kino.Input.file_path(file_input.file_ref)
+contents = File.read!(file_path)
+```
+
+```elixir
+contents = """
+7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9
+"""
+```
+
+```elixir
+reports =
+  contents
+  |> String.split("\n")
+  |> Enum.map(fn line -> String.split(line, " ") end)
+  |> Enum.map(fn numbers ->
+    numbers
+    |> Enum.reject(fn n -> String.length(n) == 0 end)
+    |> Enum.map(&String.to_integer/1)
+  end)
+  |> Enum.reject(&Enum.empty?/1)
+```
+
+```elixir
+report_evaluator = fn reports, max_removals ->
+  reports
+  |> Enum.filter(fn numbers ->
+    numbers
+    |> Enum.reduce_while(%{result: true, last: nil, dir: nil, removed: 0}, fn
+      n, %{last: nil} = result ->
+        {:cont, %{result | last: n}}
+
+      n, %{last: m, removed: r} = result when r < max_removals and m > n and m - n > 3 ->
+        {:cont, %{result | removed: r + 1}}
+
+      n, %{last: m} when m > n and m - n > 3 ->
+        {:halt, %{result: false}}
+
+      n, %{last: m, removed: r} = result when r < max_removals and n > m and n - m > 3 ->
+        {:cont, %{result | removed: r + 1}}
+
+      n, %{last: m} when n > m and n - m > 3 ->
+        {:halt, %{result: false}}
+
+      n, %{last: n, removed: r} = result when r < max_removals ->
+        {:cont, %{result | removed: r + 1}}
+
+      n, %{last: n} ->
+        {:halt, %{result: false}}
+
+      n, %{last: m, dir: nil} = result when n > m ->
+        {:cont, %{result | dir: :asc, last: n}}
+
+      n, %{last: m, dir: nil} = result when n < m ->
+        {:cont, %{result | dir: :desc, last: n}}
+
+      n, %{last: m, dir: :asc, removed: r} = result when r < max_removals and n < m ->
+        {:cont, %{result | removed: r + 1}}
+
+      n, %{last: m, dir: :asc} when n < m ->
+        {:halt, %{result: false}}
+
+      n, %{last: m, dir: :desc, removed: r} = result when r < max_removals and n > m ->
+        {:cont, %{result | removed: r + 1}}
+
+      n, %{last: m, dir: :desc} when n > m ->
+        {:halt, %{result: false}}
+
+      n, result ->
+        {:cont, %{result | last: n}}
+    end)
+    |> Map.get(:result)
+  end)
+  |> length()
+end
+```
+
+## Part 1
+
+```elixir
+report_evaluator.(reports, 0)
+```
+
+## Part 2
+
+```elixir
+report_evaluator.(reports, 1)
+```
