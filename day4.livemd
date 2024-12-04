@@ -1,0 +1,89 @@
+# Day 4
+
+```elixir
+Mix.install([:kino])
+```
+
+## Read Input
+
+```elixir
+file_input = Kino.Input.file("Please Select Input File")
+```
+
+```elixir
+file_info = Kino.Input.read(file_input)
+file_path = Kino.Input.file_path(file_info.file_ref)
+contents = File.read!(file_path)
+```
+
+```elixir
+contents = """
+MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX
+"""
+```
+
+```elixir
+valid_chars = ["X", "M", "A", "S"]
+
+{grid, start_points} = contents
+  |> String.split("\n")
+  |> Enum.with_index()
+  |> Enum.reduce({%{}, []}, fn({line, y}, {grid, start_points}) ->
+    line
+    |> String.graphemes()
+    |> Enum.with_index()
+    |> Enum.reduce({grid, start_points}, fn({char, x}, {grid, start_points}) ->
+      cond do
+        char == "X" ->
+          {Map.put(grid, {x, y}, char), [{x, y} | start_points]}
+        Enum.member?(valid_chars, char) ->
+          {Map.put(grid, {x, y}, char), start_points}
+        true ->
+          {grid, start_points}
+      end
+    end)
+  end)
+```
+
+```elixir
+defmodule GraphTraversal do
+  @search_diffs [{1, 0}, {1, 1}, {0, 1}, {-1, -1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}]
+  
+  def find_sequence(start_x, start_y, grid, sequence) do
+    @search_diffs
+    |> Enum.reduce(0, fn({dx, dy}, found) ->
+      find_sequence(start_x, start_y, grid, sequence, dx, dy, found)
+    end)
+  end
+  def find_sequence(_x, _y, _grid, [], _dx, _dy, found),
+    do: found + 1
+  def find_sequence(x, y, grid, [current | rest], dx, dy, found) do
+    case Map.get(grid, {x, y}) do
+      ^current -> find_sequence(x + dx, y + dy, grid, rest, dx, dy, found)
+      _        -> found
+    end
+  end
+end
+```
+
+```elixir
+GraphTraversal.find_sequence(0, 5, grid, ["X", "M", "A", "S"])
+```
+
+## Part 1
+
+```elixir
+start_points
+|> Enum.reduce(0, fn({x, y}, found) ->
+  found + GraphTraversal.find_sequence(x, y, grid, ["X", "M", "A", "S"])
+end)
+```
