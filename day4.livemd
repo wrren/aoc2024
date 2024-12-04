@@ -17,23 +17,6 @@ contents = File.read!(file_path)
 ```
 
 ```elixir
-contents = """
-MMMSXXMASM
-MSAMXMSMSA
-AMXSXMAAMM
-MSAMASMSMX
-XMASAMXAMM
-XXAMMXXAMA
-SMSMSASXSS
-SAXAMASAAA
-MAMMMXMMMM
-MXMXAXMASX
-"""
-```
-
-```elixir
-valid_chars = ["X", "M", "A", "S"]
-
 {grid, start_points} = contents
   |> String.split("\n")
   |> Enum.with_index()
@@ -45,7 +28,7 @@ valid_chars = ["X", "M", "A", "S"]
       cond do
         char == "X" ->
           {Map.put(grid, {x, y}, char), [{x, y} | start_points]}
-        Enum.member?(valid_chars, char) ->
+        Enum.member?(["M", "A", "S"], char) ->
           {Map.put(grid, {x, y}, char), start_points}
         true ->
           {grid, start_points}
@@ -56,7 +39,7 @@ valid_chars = ["X", "M", "A", "S"]
 
 ```elixir
 defmodule GraphTraversal do
-  @search_diffs [{1, 0}, {1, 1}, {0, 1}, {-1, -1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}]
+  @search_diffs [{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}]
   
   def find_sequence(start_x, start_y, grid, sequence) do
     @search_diffs
@@ -76,7 +59,7 @@ end
 ```
 
 ```elixir
-GraphTraversal.find_sequence(0, 5, grid, ["X", "M", "A", "S"])
+GraphTraversal.find_sequence(9, 9, grid, ["X", "M", "A", "S"])
 ```
 
 ## Part 1
@@ -86,4 +69,10 @@ start_points
 |> Enum.reduce(0, fn({x, y}, found) ->
   found + GraphTraversal.find_sequence(x, y, grid, ["X", "M", "A", "S"])
 end)
+```
+
+## Part 2
+
+```elixir
+
 ```
